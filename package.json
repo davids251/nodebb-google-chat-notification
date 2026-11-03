@@ -1,0 +1,22 @@
+{
+  "name": "nodebb-plugin-google-chat-email",
+  "version": "1.0.1",
+  "description": "A NodeBB plugin for integrating Google Chat notifications via email.",
+  "main": "library.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bump": "node ./scripts/bump-version.js"
+  },
+  "keywords": [
+    "nodebb",
+    "plugin",
+    "google-chat",
+    "notifications"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.4",
+    "jsonwebtoken": "^9.0.0"
+  }
+}

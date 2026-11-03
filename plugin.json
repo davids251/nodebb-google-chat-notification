@@ -1,0 +1,30 @@
+{
+  "id": "nodebb-plugin-google-chat-email",
+  "name": "Google Chat Email Integration",
+  "description": "Send notifications to Google Chat when admins post",
+  "hooks": [
+    {
+      "hook": "static:app.load",
+      "method": "init"
+    },
+    {
+      "hook": "filter:admin.header.build",
+      "method": "addAdminNavigation"
+    },
+    {
+      "hook": "action:post.save",
+      "method": "onPostSave"
+    },
+    {
+      "hook": "action:post.delete",
+      "method": "onPostDelete"
+    }
+  ],
+  "staticDirs": {
+    "static": "./static"
+  },
+  "templates": "templates",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "scriptId": "1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t"
+}
