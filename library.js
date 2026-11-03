@@ -33,6 +33,30 @@ Plugin.ping = function(req, res) {
 
 const SETTINGS_KEY = 'nodebb-plugin-google-chat-email';
 const WEBHOOK_PREFIX = 'https://chat.googleapis.com/';
+const VALID_SCOPES = ['admins', 'selected', 'all'];
+
+function parseUserList(str) {
+    return String(str || '')
+        .split(',')
+        .map(function (n) { return n.trim().toLowerCase(); })
+        .filter(Boolean);
+}
+
+// Returns { tracked, isAdmin, name } for a uid based on the saved scope setting
+async function getTracking(uid, settings) {
+    const user = require.main.require('./src/user');
+    if (!uid) {
+        return { tracked: false, isAdmin: false, name: 'Unknown' };
+    }
+    const isAdmin = await user.isAdministrator(uid);
+    const name = await user.getUserField(uid, 'username');
+    const scope = VALID_SCOPES.includes(settings.notifyScope) ? settings.notifyScope : 'admins';
+    let tracked = isAdmin || scope === 'all';
+    if (!tracked && scope === 'selected') {
+        tracked = parseUserList(settings.notifyUsers).includes(String(name).toLowerCase());
+    }
+    return { tracked: tracked, isAdmin: isAdmin, name: name };
+}
 
 Plugin.getSettings = async function(req, res) {
     try {
@@ -44,6 +68,8 @@ Plugin.getSettings = async function(req, res) {
         const settings = (await meta.settings.get(SETTINGS_KEY)) || {};
         res.json({
             webhookUrl: settings.webhookUrl || '',
+            notifyScope: VALID_SCOPES.includes(settings.notifyScope) ? settings.notifyScope : 'admins',
+            notifyUsers: settings.notifyUsers || '',
             notifyOnAdminPost: settings.notifyOnAdminPost === true || settings.notifyOnAdminPost === 'true'
         });
     } catch (e) {
@@ -65,6 +91,8 @@ Plugin.postSettings = async function(req, res) {
         }
         await meta.settings.set(SETTINGS_KEY, {
             webhookUrl: webhookUrl,
+            notifyScope: VALID_SCOPES.includes(req.body && req.body.notifyScope) ? req.body.notifyScope : 'admins',
+            notifyUsers: String((req.body && req.body.notifyUsers) || '').substring(0, 2000),
             notifyOnAdminPost: !!(req.body && req.body.notifyOnAdminPost),
             // clear leftovers from earlier approaches
             apiKey: '',
@@ -95,17 +123,18 @@ Plugin.onPostSave = async function(data) {
 
         const post = (data && data.post) || data || {};
         const uid = parseInt(post.uid, 10);
-        if (!uid || !(await user.isAdministrator(uid))) {
+        const who = await getTracking(uid, settings);
+        if (!who.tracked) {
             return;
         }
 
-        const username = await user.getUserField(uid, 'username');
+        const username = who.name;
         const content = post.content || (post.pid ? await posts.getPostField(post.pid, 'content') : '') || '';
         const title = post.tid ? await topics.getTopicField(post.tid, 'title') : '';
         const link = post.pid ? `${nconf.get('url')}/post/${post.pid}` : nconf.get('url');
         const snippet = content.length > 200 ? content.substring(0, 200) + '...' : content;
 
-        const text = `*Admin ${username} posted*${title ? ` in "${title}"` : ''}\n${snippet}\n${link}`;
+        const text = `*${who.isAdmin ? 'Admin ' : ''}${username} posted*${title ? ` in "${title}"` : ''}\n${snippet}\n${link}`;
 
         const response = await axios.post(settings.webhookUrl, { text: text }, {
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
@@ -137,16 +166,14 @@ Plugin.onPostDelete = async function(data) {
         const deleterUid = parseInt(data && data.uid, 10);
         const authorUid = parseInt(post.uid, 10);
 
-        const deleterIsAdmin = deleterUid ? await user.isAdministrator(deleterUid) : false;
-        const authorIsAdmin = authorUid ? await user.isAdministrator(authorUid) : false;
-        if (!deleterIsAdmin && !authorIsAdmin) {
+        const deleterInfo = await getTracking(deleterUid, settings);
+        const authorInfo = await getTracking(authorUid, settings);
+        if (!deleterInfo.tracked && !authorInfo.tracked) {
             return;
         }
 
-        const deleterName = deleterUid ? await user.getUserField(deleterUid, 'username') : 'Unknown';
-        const authorName = authorUid ? await user.getUserField(authorUid, 'username') : 'Unknown';
-        const deleter = deleterIsAdmin ? `Admin ${deleterName}` : deleterName;
-        const author = authorIsAdmin ? `admin ${authorName}` : authorName;
+        const deleter = deleterInfo.isAdmin ? `Admin ${deleterInfo.name}` : deleterInfo.name;
+        const author = authorInfo.isAdmin ? `admin ${authorInfo.name}` : authorInfo.name;
         const title = post.tid ? await topics.getTopicField(post.tid, 'title') : '';
         const content = post.content || '';
         const snippet = content.length > 200 ? content.substring(0, 200) + '...' : content;
