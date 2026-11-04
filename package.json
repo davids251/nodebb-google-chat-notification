@@ -1,7 +1,7 @@
 {
-  "name": "nodebb-plugin-google-chat-email",
-  "version": "1.0.1",
-  "description": "A NodeBB plugin for integrating Google Chat notifications via email.",
+  "name": "nodebb-plugin-google-chat-integration",
+  "version": "1.0.2",
+  "description": "NodeBB plugin that posts new and deleted topic/post notifications to Google Chat via incoming webhooks, with per-topic webhook selection.",
   "main": "library.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,14 +9,35 @@
   },
   "keywords": [
     "nodebb",
+    "nodebb-plugin",
     "plugin",
     "google-chat",
+    "google chat",
+    "webhook",
     "notifications"
   ],
-  "author": "Your Name",
+  "author": "davids251",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.21.4",
-    "jsonwebtoken": "^9.0.0"
-  }
+    "axios": "^0.21.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davids251/nodebb-google-chat-notification.git"
+  },
+  "bugs": {
+    "url": "https://github.com/davids251/nodebb-google-chat-notification/issues"
+  },
+  "homepage": "https://github.com/davids251/nodebb-google-chat-notification#readme",
+  "nbbpm": {
+    "compatibility": "^4.0.0"
+  },
+  "files": [
+    "library.js",
+    "plugin.json",
+    "static/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ]
 }

@@ -1,7 +1,7 @@
 (function() {
     $(window).on('action:ajaxify.contentLoaded', function(ev, data) {
         if (!data || !data.url) return;
-        if (data.url.indexOf('/admin/plugins/google-chat-email') !== -1) {
+        if (data.url.indexOf('/admin/plugins/google-chat-integration') !== -1) {
             initPanel();
         }
     });
@@ -12,7 +12,7 @@
         var $notifyCheckbox = $('#notify-on-admin-post');
         loadSettings($spaceId, $apiKey, $notifyCheckbox);
 
-        $(document).off('click.save-google-chat-email-settings').on('click.save-google-chat-email-settings', '#save-google-chat-email-settings', function() {
+        $(document).off('click.save-google-chat-integration-settings').on('click.save-google-chat-integration-settings', '#save-google-chat-integration-settings', function() {
             var spaceId = $spaceId.val().trim();
             var apiKey = $apiKey.val().trim();
             var notifyOnAdminPost = $notifyCheckbox.is(':checked');
@@ -26,7 +26,7 @@
     }
 
     function loadSettings($spaceId, $apiKey, $notifyCheckbox) {
-        fetch('/api/plugin/google-chat-email/settings')
+        fetch('/api/plugin/google-chat-integration/settings')
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if ($spaceId && data.spaceId) $spaceId.val(data.spaceId);
@@ -39,7 +39,7 @@
     }
 
     function saveSettings(spaceId, apiKey, notifyOnAdminPost) {
-        fetch('/api/plugin/google-chat-email/settings', {
+        fetch('/api/plugin/google-chat-integration/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

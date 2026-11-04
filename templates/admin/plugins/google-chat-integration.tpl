@@ -38,8 +38,7 @@
       <label class="mb-0">
         <input type="checkbox" id="notify-on-admin-post" /> Enable notifications (new and deleted posts)
       </label>
-      <button id="save-google-chat-email-settings" class="btn btn-primary">Save settings</button>
-      <span class="text-muted" id="gchat-dirty" style="display:none;">You have unsaved changes.</span>
+      <span class="text-muted" id="gchat-dirty" style="display:none;"></span>
     </div>
   </div>
 </div>
@@ -50,10 +49,9 @@ function initGoogleChatAdmin() {
     var $count = document.getElementById('gchat-count');
     var $add = document.getElementById('gchat-add');
     var $notify = document.getElementById('notify-on-admin-post');
-    var $save = document.getElementById('save-google-chat-email-settings');
     var $dirty = document.getElementById('gchat-dirty');
 
-    if (!$list || !$add || !$save) {
+    if (!$list || !$add) {
         return;
     }
 
@@ -74,7 +72,26 @@ function initGoogleChatAdmin() {
         return node;
     }
 
-    function markDirty() { $dirty.style.display = ''; }
+    // Saves immediately after every change (add, update, delete, enable toggle)
+    function markDirty() {
+        $dirty.style.display = '';
+        $dirty.textContent = 'Saving...';
+        fetch('/api/plugin/google-chat-integration/settings', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+            body: JSON.stringify({ webhooks: hooks, notifyOnAdminPost: $notify.checked })
+        })
+        .then(function (r) {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            $dirty.textContent = 'Saved.';
+            setTimeout(function () { $dirty.style.display = 'none'; }, 2000);
+        })
+        .catch(function (err) {
+            $dirty.textContent = '';
+            alert('Error saving settings: ' + err.message);
+        });
+    }
 
     // Show only the end of the URL so it can be told apart without exposing the key
     function fingerprint(url) {
@@ -190,7 +207,7 @@ function initGoogleChatAdmin() {
     };
     $notify.onchange = markDirty;
 
-    fetch('/api/plugin/google-chat-email/settings', { credentials: 'same-origin' })
+    fetch('/api/plugin/google-chat-integration/settings', { credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
         .then(function (data) {
             $notify.checked = !!data.notifyOnAdminPost;
@@ -199,25 +216,6 @@ function initGoogleChatAdmin() {
         })
         .catch(function (e) { console.error('[Google Chat] Error loading settings:', e); render(); });
 
-    $save.onclick = function (e) {
-        e.preventDefault();
-        if (editing !== -1) {
-            alert('Finish or cancel the webhook you are editing first.');
-            return;
-        }
-        fetch('/api/plugin/google-chat-email/settings', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
-            body: JSON.stringify({ webhooks: hooks, notifyOnAdminPost: $notify.checked })
-        })
-        .then(function (r) {
-            if (!r.ok) { throw new Error('HTTP ' + r.status); }
-            $dirty.style.display = 'none';
-            alert('Settings saved (' + hooks.length + ' webhook' + (hooks.length === 1 ? '' : 's') + ').');
-        })
-        .catch(function (err) { alert('Error saving settings: ' + err.message); });
-    };
 }
 
 initGoogleChatAdmin();

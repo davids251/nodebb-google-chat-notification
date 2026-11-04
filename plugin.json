@@ -1,7 +1,7 @@
 {
-  "id": "nodebb-plugin-google-chat-email",
-  "name": "Google Chat Email Integration",
-  "description": "Send notifications to Google Chat when admins post",
+  "id": "nodebb-plugin-google-chat-integration",
+  "name": "Google Chat Integration",
+  "description": "NodeBB plugin that posts new and deleted topic/post notifications to Google Chat via incoming webhooks, with per-topic webhook selection.",
   "hooks": [
     {
       "hook": "static:app.load",
@@ -31,7 +31,7 @@
     "static": "./static"
   },
   "templates": "templates",
-  "version": "1.0.0",
-  "author": "Your Name",
-  "scriptId": "1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t"
+  "version": "1.0.2",
+  "author": "davids251",
+  "library": "./library.js"
 }

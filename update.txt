@@ -1,0 +1,182 @@
+davids251: how do i publish htis pluggin to npm so other can find it in nodebb
+
+GitHub Copilot: Your package.json is already set up for publishing: the name starts with `nodebb-plugin-`, it has the `nodebb-plugin` keyword, and it has an `nbbpm` compatibility field. NodeBB finds plugins by searching npm for that keyword.
+
+**Steps**
+
+1. Create an npm account at npmjs.com and turn on 2FA.
+2. Log in from the terminal:
+   ```
+   npm login
+   ```
+3. Check that the name is free and see what will be packaged:
+   ```
+   npm view nodebb-plugin-google-chat-email
+   npm pack --dry-run
+   ```
+   The `npm view` command should return a 404, which means the name is available. If it's taken, rename the package in package.json and plugin.json.
+4. Commit and push your changes to GitHub, then publish:
+   ```
+   npm publish
+   ```
+   Use `npm publish --otp=123456` if 2FA asks for a code.
+5. For later releases, bump the version first (`npm run bump`, or `npm version patch`), then run `npm publish` again. npm rejects a version number it has already seen.
+
+**Before publishing**
+
+- Make sure plugin.json has the correct `id`, `library`, `hooks`, `staticDirs` and templates entries, and that its id matches the package name.
+- Your code calls `require('axios')`. `axios` is listed in `dependencies`, so it will be installed along with the plugin.
+- `axios@^0.21.4` has known vulnerabilities. Consider upgrading to `^1.x` before you publish.
+
+**After publishing**
+
+- NodeBB's plugin list comes from the package index at `packages.nodebb.org`. It refreshes within a few hours, after which the plugin shows up under **Admin → Extend → Plugins → Find Plugins**.
+- Anyone can also install it right away with `npm install nodebb-plugin-google-chat-email`, then activate it in the admin panel and rebuild.
+- Your `nbbpm.compatibility` is `^4.0.0`. This means NodeBB 3.x forums won't list it as compatible. Widen the range if you want to support them.
+
+davids251: the pluggin name is nodebb-plugin-google-chat-Integration
+
+GitHub Copilot: npm requires lowercase package names, so the name has to be `nodebb-plugin-google-chat-integration`. library.js also mixes cases and still has leftover names. I'll check the other files. I'll lowercase every variant of the name across the project and rename the template to match. The command printed nothing, which is unexpected, so I'll check the result. The plugin is now named `nodebb-plugin-google-chat-integration` everywhere. The rename covered these places:
+
+- **Package and plugin id:** package.json and plugin.json.
+- **Code:** library.js, `static/*.js` and `scripts/*.js`.
+- **Docs:** README.md.
+- **Template:** google-chat-email.tpl is now `google-chat-integration.tpl`.
+- **Routes:** the admin route in library.js is `/admin/plugins/google-chat-integration`, and the API routes are `/api/plugin/google-chat-integration/...`.
+
+I used all lowercase because npm rejects package names with capital letters. NodeBB also expects the plugin id to match the package name.
+
+The settings key is now `nodebb-plugin-google-chat-integration`, so any settings saved under the old key won't carry over. That doesn't matter if you haven't published or deployed yet.
+
+The `nodebb-plugin-google-chat-integration` name still needs checking against npm (`npm view nodebb-plugin-google-chat-integration`). If that returns a 404, the name is free and you can run `npm publish`.
+
+davids251: david@david-VirtualBox:~/projects/Form-auto-notifi/nodebb-plugin-google-chat-Integration$ npm view nodebb-plugin-google-chat-integration
+npm error code E404
+npm error 404 Not Found - GET https://registry.npmjs.org/nodebb-plugin-google-chat-integration - Not found
+npm error 404
+npm error 404  The requested resource 'nodebb-plugin-google-chat-integration@*' could not be found or you do not have permission to access it.
+npm error 404
+npm error 404 Note that you can also install from a
+npm error 404 tarball, folder, http url, or git url.
+npm error A complete log of this run can be found in: /home/david/.npm/_logs/2026-11-04T18_44_24_596Z-debug-0.log
+
+
+GitHub Copilot: The 404 means the name `nodebb-plugin-google-chat-integration` is free on npm, so you can publish it.
+
+**Next steps**
+
+1. Preview what will be packaged:
+   ```
+   npm pack --dry-run
+   ```
+   You should see library.js, plugin.json, static, templates, README.md and LICENSE.
+2. Log in if you haven't already (`npm whoami` shows whether you are):
+   ```
+   npm login
+   ```
+3. Publish:
+   ```
+   npm publish
+   ```
+   If npm asks for a one-time code, use `npm publish --otp=<code>`.
+4. Check that it's live at `https://www.npmjs.com/package/nodebb-plugin-google-chat-integration`.
+
+The plugin should appear in NodeBB's **Find Plugins** list within a few hours. Until then it can be installed directly with `npm install nodebb-plugin-google-chat-integration`.
+
+Before you publish, commit the rename and push it to GitHub so the repo matches the package.If npm asks for a one-time code, use `npm publish --otp=<code>`.
+4. Check that it's live at `https://www.npmjs.com/package/nodebb-plugin-google-chat-integration`.
+
+The plugin should appear in NodeBB's **Find Plugins** list within a few hours. Until then it can be installed directly with `npm install nodebb-plugin-google-chat-integration`.
+
+Before you publish, commit the rename and push it to GitHub so the repo matches the package.
+
+davids251: david@david-VirtualBox:~/projects/Form-auto-notifi/nodebb-plugin-google-chat-Integration$ npm publish
+npm notice
+npm notice 📦  nodebb-plugin-google-chat-integration@1.0.2
+npm notice Tarball Contents
+npm notice 1.1kB LICENSE
+npm notice 3.1kB README.md
+npm notice 13.8kB library.js
+npm notice 1.1kB package.json
+npm notice 859B plugin.json
+npm notice 2.5kB static/admin.js
+npm notice 6.0kB static/client.js
+npm notice 10.7kB templates/admin/plugins/google-chat-integration.tpl
+npm notice Tarball Details
+npm notice name: nodebb-plugin-google-chat-integration
+npm notice version: 1.0.2
+npm notice filename: nodebb-plugin-google-chat-integration-1.0.2.tgz
+npm notice package size: 11.8 kB
+npm notice unpacked size: 39.1 kB
+npm notice shasum: 3f532288d787ea9c6388e4a734fe652c05bcded8
+npm notice integrity: sha512-R+tkrNPSfN4HM[...]V9xQV+faldOYA==
+npm notice total files: 8
+npm notice
+npm notice Publishing to https://registry.npmjs.org/ with tag latest and default access
+npm error code E403
+npm error 403 403 Forbidden - PUT https://registry.npmjs.org/nodebb-plugin-google-chat-integration - Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.
+npm error 403 In most cases, you or one of your dependencies are requesting a package version that is forbidden by your security policy, or on a server you do not have access to.
+npm error A complete log of this run can be found in: /home/david/.npm/_logs/2026-11-04T18_45_24_622Z-debug-0.log
+
+
+GitHub Copilot: The package contents are correct. npm rejected the publish because your account has no two-factor authentication (2FA) set up, or the login you used doesn't satisfy it. There are two ways to fix this.
+
+**Option A: enable 2FA, then pass a code (simplest)**
+
+1. On npmjs.com, go to Account → Two-Factor Authentication and enable it for "Authorization and publishing". Use an authenticator app such as Google Authenticator or Authy.
+2. Publish with a current 6-digit code:
+   ```
+   npm publish --otp=123456
+   ```
+
+**Option B: use a granular access token**
+
+1. On npmjs.com, go to Access Tokens → Generate New Token → Granular Access Token.
+2. Set the permission to Read and write. Because the package doesn't exist yet, leave the packages selection at "All packages". You can restrict the token to this one package after the first publish.
+3. Tick **Bypass two-factor authentication** on the token.
+4. Put the token in your npm config and publish:
+   ```
+   npm config set //registry.npmjs.org/:_authToken=YOUR_TOKEN
+   npm publish
+   ```
+
+If you used a token, delete it from `~/.npmrc` or revoke it on npmjs.com once the publish succeeds.
+
+If the 2FA code is rejected, check that the VM's clock is correct. Authenticator codes fail when the system time is off.
+
+davids251: how can i update it later if i need to cahnge something
+
+GitHub Copilot: npm won't let you republish a version number that already exists, so every update needs a new version.
+
+**To release an update**
+
+1. Edit the code and test it.
+2. Commit your changes:
+   ```
+   git add -A && git commit -m "Describe the change"
+   ```
+3. Bump the version. Your script `npm run bump` does this, or you can use npm's built-in command:
+   ```
+   npm version patch
+   ```
+   - `patch` (1.0.2 → 1.0.3) is for bug fixes.
+   - `minor` (1.0.2 → 1.1.0) is for new features.
+   - `major` (1.0.2 → 2.0.0) is for breaking changes.
+
+   `npm version` also creates a git commit and tag. If you use `npm run bump` instead, check that it only edits the version number.
+4. Publish and push:
+   ```
+   npm publish --otp=<code>
+   git push && git push --tags
+   ```
+
+**How people get the update**
+
+- On a NodeBB forum, an admin sees the new version under **Admin → Extend → Plugins** and clicks **Upgrade**. Alternatively, they can run `npm update nodebb-plugin-google-chat-integration` and rebuild.
+- The new version shows up in NodeBB's plugin list within a few hours.
+
+**Things to know**
+
+- You can't overwrite a published version. For a bad release, publish a fixed patch version. Within 72 hours of publishing you can also run `npm unpublish nodebb-plugin-google-chat-integration@1.0.2`, but that isn't recommended.
+- To flag a broken version, use `npm deprecate nodebb-plugin-google-chat-integration@1.0.2 "Use 1.0.3"`.
+- If you change the settings storage format, keep a migration for old data, as `loadSettings` already does for the single-webhook format.
