@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios');
+const crypto = require('crypto');
 const Plugin = {};
 
 const SETTINGS_KEY = 'nodebb-plugin-google-chat-email';
@@ -22,6 +23,7 @@ Plugin.init = function (params, callback) {
 	router.get('/api/plugin/google-chat-email/ping', Plugin.ping);
 	router.get('/api/plugin/google-chat-email/settings', Plugin.getSettings);
 	router.post('/api/plugin/google-chat-email/settings', Plugin.postSettings);
+router.get('/api/plugin/google-chat-email/choices', Plugin.getChoices);
 
 	console.log('[nodebb-plugin-google-chat-email] Plugin.init completed successfully');
 	callback();
@@ -36,6 +38,10 @@ function parseUserList(str) {
 		.split(',')
 		.map(function (n) { return n.trim().toLowerCase(); })
 		.filter(Boolean);
+}
+
+function hookId(url) {
+return crypto.createHash('sha1').update(String(url || '')).digest('hex').substring(0, 10);
 }
 
 function toBool(v) {
@@ -73,6 +79,7 @@ async function loadSettings() {
 
 	webhooks = webhooks.map(function (w) {
 		return {
+			id: hookId(w && w.url),
 			name: String((w && w.name) || '').trim().substring(0, 100),
 			url: String((w && w.url) || '').trim(),
 			scope: cleanScope(w && w.scope),
@@ -100,6 +107,47 @@ Plugin.getSettings = async function (req, res) {
 		res.status(500).json({ error: 'Error loading settings' });
 	}
 };
+
+// Names only (never URLs) so the composer can offer a choice.
+Plugin.getChoices = async function (req, res) {
+try {
+if (!req.uid) {
+return res.status(403).json({ error: 'Forbidden' });
+}
+const settings = await loadSettings();
+res.json({
+enabled: settings.enabled,
+webhooks: settings.webhooks.map(function (w, i) {
+return { id: w.id, name: w.name || 'Webhook ' + (i + 1) };
+}),
+});
+} catch (e) {
+res.status(500).json({ error: 'Error loading choices' });
+}
+};
+
+// Store the chosen webhook id on the new topic.
+Plugin.onTopicCreate = async function (result) {
+const id = result && result.data && result.data.gchatWebhook;
+if (result && result.topic && id) {
+result.topic.gchatWebhook = String(id).substring(0, 20);
+}
+return result;
+};
+
+// Webhooks that should receive events for a topic.
+async function hooksForTopic(settings, tid) {
+if (tid) {
+const topics = require.main.require('./src/topics');
+const chosen = await topics.getTopicField(tid, 'gchatWebhook');
+if (chosen) {
+return settings.webhooks.filter(function (w) { return w.id === chosen; }).map(function (w) {
+return Object.assign({}, w, { scope: 'all' });
+});
+}
+}
+return settings.webhooks;
+}
 
 Plugin.postSettings = async function (req, res) {
 	try {
@@ -203,7 +251,7 @@ Plugin.onPostSave = async function (data) {
 		const link = post.pid ? nconf.get('url') + '/post/' + post.pid : nconf.get('url');
 
 		const cache = {};
-		await Promise.all(settings.webhooks.map(async function (hook) {
+		await Promise.all((await hooksForTopic(settings, post.tid)).map(async function (hook) {
 			if (!hook.url) {
 				return;
 			}
@@ -237,7 +285,7 @@ Plugin.onPostDelete = async function (data) {
 		const link = post.pid ? nconf.get('url') + '/post/' + post.pid : nconf.get('url');
 
 		const cache = {};
-		await Promise.all(settings.webhooks.map(async function (hook) {
+		await Promise.all((await hooksForTopic(settings, post.tid)).map(async function (hook) {
 			if (!hook.url) {
 				return;
 			}

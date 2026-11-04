@@ -16,9 +16,16 @@
       "method": "onPostSave"
     },
     {
+      "hook": "filter:topic.create",
+      "method": "onTopicCreate"
+    },
+    {
       "hook": "action:post.delete",
       "method": "onPostDelete"
     }
+  ],
+  "scripts": [
+    "static/client.js"
   ],
   "staticDirs": {
     "static": "./static"

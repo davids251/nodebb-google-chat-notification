@@ -1,56 +1,48 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const emailInput = document.getElementById('google-chat-email');
-    const saveButton = document.getElementById('save-google-chat-email');
+'use strict';
 
-    // Load existing email settings
-    loadEmailSettings();
+/* global $, config */
+(function () {
+let choices = null;
 
-    saveButton.addEventListener('click', function() {
-        const email = emailInput.value.trim();
-        if (validateEmail(email)) {
-            saveEmailSettings(email);
-        } else {
-            alert('Please enter a valid email address.');
-        }
-    });
+function load(cb) {
+if (choices) {
+return cb(choices);
+}
+$.get(config.relative_path + '/api/plugin/google-chat-email/choices')
+.done(function (d) { choices = d; cb(d); })
+.fail(function () { cb(null); });
+}
 
-    function loadEmailSettings() {
-        // Fetch existing email settings from the server
-        fetch('/api/plugin/google-chat/email-settings')
-            .then(response => response.json())
-            .then(data => {
-                if (data.email) {
-                    emailInput.value = data.email;
-                }
-            })
-            .catch(error => {
-                console.error('Error loading email settings:', error);
-            });
-    }
-
-    function saveEmailSettings(email) {
-        // Save email settings to the server
-        fetch('/api/plugin/google-chat/email-settings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email })
-        })
-        .then(response => {
-            if (response.ok) {
-                alert('Email settings saved successfully!');
-            } else {
-                alert('Error saving email settings. Please try again.');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving email settings:', error);
-        });
-    }
-
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
+$(window).on('action:composer.loaded', function (ev, data) {
+const el = $('.composer[data-uuid="' + data.post_uuid + '"]');
+if (!el.length || !el.find('.title').length || data.pid) {
+return;
+}
+if (el.find('.gchat-picker').length) {
+return;
+}
+load(function (d) {
+if (!d || !d.enabled || !d.webhooks.length) {
+return;
+}
+const sel = $('<select class="form-select form-select-sm gchat-picker" style="max-width:260px"></select>');
+sel.append('<option value="">Google Chat: default (by scope)</option>');
+d.webhooks.forEach(function (w) {
+sel.append($('<option></option>').attr('value', w.id).text('Google Chat: ' + w.name));
 });
+el.find('.title').closest('div').after($('<div class="mb-2"></div>').append(sel));
+});
+});
+
+$(window).on('action:composer.topic.new', function () {});
+
+require(['hooks'], function (hooks) {
+hooks.on('filter:composer.submit', function (data) {
+const v = data.composerEl.find('.gchat-picker').val();
+if (v && data.composerData) {
+data.composerData.gchatWebhook = v;
+}
+return data;
+});
+});
+}());
