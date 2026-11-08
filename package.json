@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-google-chat-integration",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "NodeBB plugin that posts new and deleted topic/post notifications to Google Chat via incoming webhooks, with per-topic webhook selection.",
   "main": "library.js",
   "scripts": {
